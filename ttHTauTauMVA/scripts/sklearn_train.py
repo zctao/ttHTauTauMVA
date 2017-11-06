@@ -49,7 +49,7 @@ args = parser.parse_args()
 # Input files
 
 # signal input file
-# ttH non bb
+# ttH nonbb
 infile_sig = args.indir+args.ntuple_prefix+"ttH_"+args.anatype+".root"
 xs_sig = 0.215 # ttHnonbb
 # background input file
@@ -81,24 +81,13 @@ stop=timer()
 #################
 # Read inputs
 
-def update_weights(weights, wtype):
-    if wtype=='u':
-        return np.ones(len(weights))
-    elif wtype=='f':
-        return np.array(util.flip_negative_weight(weights))
-    elif wtype=='z':
-        return np.array(util.ignore_negative_weight(weights))
-    else:
-        return weights
-    
-
 if args.timeit:
     start=timer()
 if not args.quiet:
     print 'Reading signal samples ...'
     
 xsig, ysig, wsig = util.read_inputs(infile_sig, var, True)
-wsig = update_weights(wsig, args.weights)
+wsig = util.update_weights(wsig, args.weights)
 # scale
 wsig *= 1. * xs_sig / np.sum(wsig)
 
@@ -109,7 +98,7 @@ if not args.quiet:
 dataset_bkg = []
 for in_bkg in infiles_bkg:
     xbi, ybi, wbi = util.read_inputs(in_bkg, var, False)
-    wbi = update_weights(wbi, args.weights)
+    wbi = util.update_weights(wbi, args.weights)
     dataset_bkg.append((xbi, ybi, wbi))
 
 # combine background samples
@@ -121,8 +110,6 @@ if not args.quiet:
 if args.timeit:
     stop=timer()
     print 'Reading inputs took ', stop-start, 's'
-
-# finish reading inputs
     
 if args.correlation:
     util.plot_correlation(xsig, var, args.outdir+'correlation_sig.png',
@@ -184,10 +171,10 @@ if not args.quiet:
 if args.evaluate:
     #y_pred = bdt.decision_function(x_test)#.ravel()
     y_pred = bdt.predict_proba(x_test)[:,1]
-    util.plot_clf_results(bdt, x_train, y_train, w_train, x_test, y_test, w_test,
-                          figname=args.outdir+"bdtoutput.png",
-                          verbose=(not args.quiet))
+    util.plot_clf_results_sklearn(bdt, x_train, y_train, w_train, x_test, y_test,
+                                  w_test,figname=args.outdir+"bdtoutput.png",
+                                  verbose=(not args.quiet))
     util.plot_roc((y_test, y_pred, w_test), figname=args.outdir+'roc.png',
                   verbose=(not args.quiet))
     util.print_variables_rank(bdt,var,outname=args.outdir+'ranks.txt',
-                             verbose=(not args.quiet))
+                              verbose=(not args.quiet))

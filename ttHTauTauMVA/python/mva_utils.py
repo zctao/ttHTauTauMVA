@@ -154,6 +154,15 @@ def get_inputs(sample_name,variables,filename=None,tree_name='mva',dir='',
 #    array2root(x[y<0.5],filename,treename=split+'/background', mode='update')
 #    array2root(w[y<0.5],filename,treename=split+'/background', mode='update')
     
+def update_weights(weights, wtype):
+    if wtype=='u':
+        return np.ones(len(weights))
+    elif wtype=='f':
+        return np.array(util.flip_negative_weight(weights))
+    elif wtype=='z':
+        return np.array(util.ignore_negative_weight(weights))
+    else:
+        return weights
 
 #def correct_negative_weight(weights):
 #    # based on the suggestion from @glouppe
@@ -256,39 +265,33 @@ def plot_rocs(data_list, figname, verbose=False, weights=None):
     if verbose:
         print 'Generate plot : ', figname
     
-    
-def plot_clf_results(clf, x_train, y_train, w_train, x_test, y_test, w_test, nbins=30, figname="BDTOutput.png", verbose="False"):
-    decisions = []
-    weights = []
-    for x,y,w in ((x_train, y_train, w_train), (x_test, y_test, w_test)):
-        w *= 1./np.sum(w)
-        #dsig = clf.decision_function(x[y>0.5])
-        dsig = clf.predict_proba(x[y>0.5])[:,1]
-        wsig = w[y>0.5]
-        #dbkg = clf.decision_function(x[y<0.5])
-        dbkg = clf.predict_proba(x[y<0.5])[:,1]
-        wbkg = w[y<0.5]
-        decisions += [dsig,dbkg]
-        weights += [wsig, wbkg]
+def plot_clf_results(decisions, weights, nbins=30, figname="BDTOutput.png",
+                     verbose="False"):
 
+    # unpack np array tuple
+    decision_sig_train, decision_bkg_train, decision_sig_test, decision_bkg_test = decisions
+    for w in weights:
+        w *= 1./np.sum(w)
+    weight_sig_train, weight_bkg_train, weight_sig_test, weight_bkg_test = weights
+    
     low = min(np.min(d) for d in decisions)
     high = max(np.max(d) for d in decisions)
-    
+
     h_train_sig = r.TH1D('train_sig','',nbins,low,high)
     h_train_sig.SetStats(0)
-    fill_hist(h_train_sig, decisions[0], weights=weights[0])
+    fill_hist(h_train_sig, decision_sig_train, weights=weight_sig_train)
 
     h_train_bkg = r.TH1D('train_bkg','',nbins,low,high)
     h_train_bkg.SetStats(0)
-    fill_hist(h_train_bkg, decisions[1], weights=weights[1])
+    fill_hist(h_train_bkg, decision_bkg_train, weights=weight_bkg_train)
 
     h_test_sig = r.TH1D('test_sig','',nbins,low,high)
     h_test_sig.SetStats(0)
-    fill_hist(h_test_sig, decisions[2], weights=weights[2])
+    fill_hist(h_test_sig, decision_sig_test, weights=weight_sig_test)
 
     h_test_bkg = r.TH1D('test_bkg','',nbins,low,high)
     h_test_bkg.SetStats(0)
-    fill_hist(h_test_bkg, decisions[3], weights=weights[3])
+    fill_hist(h_test_bkg, decision_bkg_test, weights=weight_bkg_test)
 
     # legend
     l = r.TLegend(0.75,0.75,0.9,0.9)
@@ -328,6 +331,39 @@ def plot_clf_results(clf, x_train, y_train, w_train, x_test, y_test, w_test, nbi
     if verbose:
         print 'Generate plot : ', figname
 
+
+def plot_clf_results_tmva(reader, x_train, y_train, w_train, x_test, y_test, w_test, nbins=30, figname="BDTOutput_tmva.png", verbose="False"):
+
+    decisions = []
+    weights = []
+    for x,y,w in ((x_train, y_train, w_train), (x_test, y_test, w_test)):
+        w *= 1./np.sum(w)
+        dsig = evaluate_reader(reader, "BDT", x[y>0.5])
+        wsig = w[y>0.5]
+        dbkg = evaluate_reader(reader, "BDT", x[y<0.5])
+        wbkg = w[y<0.5]
+        decisions += [dsig, dbkg]
+        weights += [wsig, wbkg]
+
+    plot_clf_results(tuple(decisions), tuple(weights), nbins, figname, verbose)
+        
+def plot_clf_results_sklearn(clf, x_train, y_train, w_train, x_test, y_test, w_test, nbins=30, figname="BDTOutput_sklearn.png", verbose="False"):
+    
+    decisions = []
+    weights = []
+    for x,y,w in ((x_train, y_train, w_train), (x_test, y_test, w_test)):
+        w *= 1./np.sum(w)
+        #dsig = clf.decision_function(x[y>0.5])
+        dsig = clf.predict_proba(x[y>0.5])[:,1]
+        wsig = w[y>0.5]
+        #dbkg = clf.decision_function(x[y<0.5])
+        dbkg = clf.predict_proba(x[y<0.5])[:,1]
+        wbkg = w[y<0.5]
+        decisions += [dsig,dbkg]
+        weights += [wsig, wbkg]
+
+    plot_clf_results(tuple(decisions), tuple(weights), nbins, figname, verbose)
+        
     
 def print_variables_rank(clf, variables, outname=None, verbose=False):
 
@@ -461,8 +497,8 @@ def get_tmva_test_results(directory, variables, name=''):
     # TMVA reader 
     reader = r.TMVA.Reader()
     for var in variables:
-        vtype = 'i' if var=='nJet' else 'f'
-        reader.AddVariable(var, array(vtype, [0.]))
+        #vtype = 'i' if var in ['nJet','tau0_decaymode','tau1_decaymode','ntags','ntags_loose'] else 'f'
+        reader.AddVariable(var, array('f', [0]))
 
     reader.BookMVA('BDT',directory+'weights/TMVA_BDT.weights.xml')
 
