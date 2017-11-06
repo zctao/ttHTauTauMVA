@@ -38,8 +38,8 @@ parser.add_argument('--ntuple_prefix', type=str, default='mvaVars_',
                     help="Prefix of mva ntuple files")
 parser.add_argument('-o','--outdir',type=str, default='./',
                     help="output directory")
-#parser.add_argument('-n','--normalize',action='store_true', #default=False,
-#                    help="normalize input sample weights")
+parser.add_argument('-n','--normalize',action='store_true', #default=False,
+                    help="normalize input sample weights")
 parser.add_argument('-w','--weights', choices=['u','o','f','z','a'], default='o',
                     help="u: unweighted in training; o: use weights directly from inputs; f: flip all negative weights; z: set all negative weights to zero; a: annihilate pair of negative and positive weighted event (not implemented yet)")
 
@@ -127,9 +127,13 @@ if args.timeit:
 if args.correlation:
     util.plot_correlation(xsig, var, args.outdir+'correlation_sig.png',
                           verbose=(not args.quiet))
-    util.plot_correlation(xsig, var, args.outdir+'correlation_bkg.png',
+    util.plot_correlation(xbkg, var, args.outdir+'correlation_bkg.png',
                           verbose=(not args.quiet))
 
+if args.normalize:
+    wsig *= 1./np.sum(wsig)
+    wbkg *= 1./np.sum(wbkg) 
+    
 x = np.concatenate((xsig, xbkg))
 y = np.concatenate((ysig, ybkg))
 w = np.concatenate((wsig, wbkg))
