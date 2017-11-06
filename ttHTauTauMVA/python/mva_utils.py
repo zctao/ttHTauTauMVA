@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import ROOT as r
+r.gROOT.SetBatch(True)
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -9,10 +10,10 @@ from root_numpy import root2array, rec2array, array2root, fill_hist
 from root_numpy.tmva import evaluate_reader
 from sklearn.metrics import roc_curve, roc_auc_score, auc
 from sklearn.metrics import classification_report
-#from sklearn.model_selection import GridSearchCV
-from sklearn.grid_search import GridSearchCV
-#from sklearn.model_selection import learning_curve
-from sklearn.learning_curve import learning_curve
+from sklearn.model_selection import GridSearchCV
+#from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import learning_curve
+#from sklearn.learning_curve import learning_curve
 from sklearn.externals import joblib
 
 variables_tt = """
@@ -47,6 +48,53 @@ mvis_lep1_tau
 # mostly based on:
 # https://betatim.github.io/posts/sklearn-for-TMVA-users/
 # https://betatim.github.io/posts/advanced-sklearn-for-TMVA/
+
+def read_inputs(file_name, variables, is_signal, tree_name='mva', weight_name='event_weight'):
+    # file_name: input ntuple file name; str
+    # variables: input variables for training; list of str
+    
+    x = rec2array(root2array(file_name, tree_name, variables))
+    w = root2array(file_name, tree_name, weight_name)
+    y = np.ones(x.shape[0]) if is_signal else np.zeros(x.shape[0]) #-1*np.ones(x.shape[0])
+    
+    return x, y, w
+
+def get_all_variable_names(file_name, tree_name='mva', weight_name='event_weight'):
+
+    file = r.TFile(file_name)
+    tree = file.Get(tree_name)
+
+    var_names = [b.GetName() for b in tree.GetListOfBranches()]
+
+    var_names.remove(weight_name)
+    
+    return var_names
+    
+
+def combine_inputs(datatuples, xsections, lumi=1.):
+    # datatuples: list of data (x, y, w)
+    # xsections: list of cross sections for the corresponding samples
+
+    x = None
+    y = None
+    w = None
+
+    for data, xs in zip(datatuples, xsections):
+        xi, yi, wi = data
+
+        # scale sample weights based on integrated luminosity and cross section
+        wi *= lumi * xs / np.sum(wi)
+
+        if x is None:
+            x = xi
+            y = yi
+            w = wi
+        else:
+            x = np.concatenate((x, xi))
+            y = np.concatenate((y, yi))
+            w = np.concatenate((w, wi))
+
+    return x, y, w
 
 def get_inputs(sample_name,variables,filename=None,tree_name='mva',dir='',
                weight_name='event_weight', lumi=1.):
