@@ -298,11 +298,15 @@ def plot_clf_results(clf, x_train, y_train, w_train, x_test, y_test, w_test, nbi
     l.AddEntry(h_test_bkg,'B (test)','p')
     
     # draw histograms
+    ymax = max(h_train_sig.GetMaximum(), h_train_bkg.GetMaximum(),
+               h_test_sig.GetMaximum(), h_test_bkg.GetMaximum())
+    
     tcanvas = r.TCanvas()
     h_train_sig.SetLineColor(2)
     h_train_sig.SetFillColorAlpha(2,0.5)
     h_train_sig.GetXaxis().SetTitle('BDT Output')
     h_train_sig.GetYaxis().SetTitle('A.U.')
+    h_train_sig.SetMaximum(ymax*1.2)
     h_train_sig.Draw("HIST")
     h_train_bkg.SetLineColor(4)
     h_train_bkg.SetFillColorAlpha(4,0.5)
