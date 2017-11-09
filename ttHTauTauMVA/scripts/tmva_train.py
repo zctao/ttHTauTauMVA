@@ -182,7 +182,7 @@ if args.evaluate:
         
         reader.AddVariable(v, array('f', [0]))
 
-    reader.BookMVA('BDT','dataset/weights/TMVA_BDT.weights.xml')
+    reader.BookMVA('BDT',args.outdir+'weights/TMVA_BDT.weights.xml')
     y_decision = evaluate_reader(reader, "BDT", x_test)
     util.plot_clf_results_tmva(reader, x_train, y_train, w_train, x_test, y_test, w_test, figname=args.outdir+"bdtoutput.png", verbose=(not args.quiet)) 
     util.plot_roc((y_test, y_decision, w_test),figname=args.outdir+'roc.png')
