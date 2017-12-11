@@ -67,6 +67,9 @@ def get_all_variable_names(file_name, tree_name='mva', weight_name='event_weight
     var_names = [b.GetName() for b in tree.GetListOfBranches()]
 
     var_names.remove(weight_name)
+
+    var_names.remove("isGenMatchedTau")
+    var_names.remove("HiggsDecayType")
     
     return var_names
     
