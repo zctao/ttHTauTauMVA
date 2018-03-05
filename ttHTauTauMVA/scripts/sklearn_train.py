@@ -40,6 +40,8 @@ parser.add_argument('-o','--outdir',type=str, default='./',
                     help="output directory")
 parser.add_argument('-n','--normalize',action='store_true', #default=False,
                     help="normalize input sample weights")
+parser.add_argument('-wn','--weight_name', type=str, default='event_weight',
+                    help="name of the event weight variable in ntuple")
 parser.add_argument('-w','--weights', choices=['u','o','f','z','a'], default='o',
                     help="u: unweighted in training; o: use weights directly from inputs; f: flip all negative weights; z: set all negative weights to zero; a: annihilate pair of negative and positive weighted event (not implemented yet)")
 
@@ -51,22 +53,22 @@ args = parser.parse_args()
 # signal input file
 # ttH nonbb
 infile_sig = args.indir+args.ntuple_prefix+"ttH_"+args.anatype+".root"
-xs_sig = 0.215 # ttHnonbb
+#xs_sig = 0.215 # ttHnonbb
 # background input file
 infiles_bkg = []
-xs_bkg = []
+#xs_bkg = []
 if args.background == "ttV":
     # TTW
     infiles_bkg.append(args.indir+args.ntuple_prefix+"TTW_"+args.anatype+".root")
-    xs_bkg.append(0.204)
+#    xs_bkg.append(0.204)
     # TTZ
     infiles_bkg.append(args.indir+args.ntuple_prefix+"TTZ_"+args.anatype+".root")
-    xs_bkg.append(0.253)
+#    xs_bkg.append(0.253)
 elif args.background == "ttbar":
     infiles_bkg.append(args.indir+args.ntuple_prefix+"TT_SemiLep_"+args.anatype+".root")
-    xs_bkg.append(182.)
+#    xs_bkg.append(182.)
     infiles_bkg.append(args.indir+args.ntuple_prefix+"TT_DiLep_"+args.anatype+".root")
-    xs_bkg.append(87.3)
+#    xs_bkg.append(87.3)
 else:
     print "Invalid background. Choose between 'ttV' and 'ttbar' for background type."
     exit()
@@ -86,25 +88,27 @@ if args.timeit:
 if not args.quiet:
     print 'Reading signal samples ...'
     
-xsig, ysig, wsig = util.read_inputs(infile_sig, var, True)
+xsig, ysig, wsig = util.read_inputs(infile_sig, var, True, weight_name=args.weight_name)
 wsig = util.update_weights(wsig, args.weights)
 # scale
-wsig *= 1. * xs_sig / np.sum(wsig)
+#wsig *= 1. * xs_sig / np.sum(wsig)
 
 if not args.quiet:
+    print "sum of weights (signal) : ", np.sum(wsig)
     print 'number of signal samples: ', xsig.shape[0]
     print 'Reading background sampels ...'
 
 dataset_bkg = []
 for in_bkg in infiles_bkg:
-    xbi, ybi, wbi = util.read_inputs(in_bkg, var, False)
+    xbi, ybi, wbi = util.read_inputs(in_bkg, var, False, weight_name=args.weight_name)
     wbi = util.update_weights(wbi, args.weights)
     dataset_bkg.append((xbi, ybi, wbi))
 
 # combine background samples
-xbkg, ybkg, wbkg = util.combine_inputs(dataset_bkg, xs_bkg, 1.)
+xbkg, ybkg, wbkg = util.combine_inputs(dataset_bkg)  #, xs_bkg, 1.)
 
 if not args.quiet:
+    print "sum of weights (background) : ", np.sum(wsig)
     print 'number of background samples: ', xbkg.shape[0]
 
 if args.timeit:
@@ -169,12 +173,19 @@ if not args.quiet:
 
 # evaluate training results
 if args.evaluate:
-    #y_pred = bdt.decision_function(x_test)#.ravel()
-    y_pred = bdt.predict_proba(x_test)[:,1]
     util.plot_clf_results_sklearn(bdt, x_train, y_train, w_train, x_test, y_test,
                                   w_test,figname=args.outdir+"bdtoutput.png",
                                   verbose=(not args.quiet))
-    util.plot_roc((y_test, y_pred, w_test), figname=args.outdir+'roc.png',
-                  verbose=(not args.quiet))
+    
     util.print_variables_rank(bdt,var,outname=args.outdir+'ranks.txt',
                               verbose=(not args.quiet))
+    
+    #y_pred = bdt.decision_function(x_test)#.ravel()
+    y_pred_test = bdt.predict_proba(x_test)[:,1]
+    y_pred_train = bdt.predict_proba(x_train)[:,1]   
+    #util.plot_roc((y_test, y_pred, w_test), figname=args.outdir+'roc.png',
+    #              verbose=(not args.quiet))
+    datalist=[(y_train, y_pred_train, w_train, 'train'),
+              (y_test, y_pred_test, w_test, 'test')]
+    util.plot_rocs(datalist, figname=args.outdir+'roc.png', verbose=(not args.quiet),
+                   title='')

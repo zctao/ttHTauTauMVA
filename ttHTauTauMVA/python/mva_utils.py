@@ -59,22 +59,26 @@ def read_inputs(file_name, variables, is_signal, tree_name='mva', weight_name='e
     
     return x, y, w
 
-def get_all_variable_names(file_name, tree_name='mva', weight_name='event_weight'):
+def get_all_variable_names(file_name, tree_name='mva', weight_names=['event_weight']):
 
     file = r.TFile(file_name)
     tree = file.Get(tree_name)
 
     var_names = [b.GetName() for b in tree.GetListOfBranches()]
 
-    var_names.remove(weight_name)
+    for wn in weight_names:
+        var_names.remove(wn)
 
     var_names.remove("isGenMatchedTau")
     var_names.remove("HiggsDecayType")
+    var_names.remove("run")
+    var_names.remove("lumi")
+    var_names.remove("nEvent")
     
     return var_names
     
 
-def combine_inputs(datatuples, xsections, lumi=1.):
+def combine_inputs(datatuples, xsections=None, lumi=1.):
     # datatuples: list of data (x, y, w)
     # xsections: list of cross sections for the corresponding samples
 
@@ -82,12 +86,14 @@ def combine_inputs(datatuples, xsections, lumi=1.):
     y = None
     w = None
 
-    for data, xs in zip(datatuples, xsections):
+    for i, data in enumerate(datatuples):
         xi, yi, wi = data
 
-        # scale sample weights based on integrated luminosity and cross section
-        wi *= lumi * xs / np.sum(wi)
-
+        if xsections is not None:
+            assert(len(xsections)==len(datatuples))
+            # scale sample weights based on integrated luminosity and cross section
+            wi *= lumi * xsections[i] / np.sum(wi)  #?
+        
         if x is None:
             x = xi
             y = yi
@@ -98,6 +104,7 @@ def combine_inputs(datatuples, xsections, lumi=1.):
             w = np.concatenate((w, wi))
 
     return x, y, w
+    
 
 def get_inputs(sample_name,variables,filename=None,tree_name='mva',dir='',
                weight_name='event_weight', lumi=1.):
@@ -242,9 +249,10 @@ def plot_roc(data, figname, verbose=False):
         print 'Generate plot : ', figname
 
 
-def plot_rocs(data_list, figname, verbose=False, weights=None):
+def plot_rocs(data_list, figname, verbose=False, weights=None,
+              title="Receiver Operating Characteristic Curve"):
     # data_list is expected to be a list of tuple (y_test, y_pred, w_test, label)
-    plt.title('Receiver Operating Characteristic Curve')
+    plt.title(title)
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.0])
     plt.xlabel('Background efficiency')
@@ -487,13 +495,22 @@ def plot_learning_curve(estimator, title, X, y, ylim=None,
     plt.savefig(figname)
     plt.close()
     
-def get_sklearn_test_results(directory, name=''):
+#def get_sklearn_test_results(directory, name=''):
+#    # load dataset and classifier
+#    clf = joblib.load(directory+'bdt.pkl')
+#    dataset = np.load(directory+'dataset.npz')
+#
+#    result = (dataset['y_test'], clf.predict_proba(dataset['x_test'])[:,1],
+#              dataset['w_test'], name)
+#    return result
+
+def get_sklearn_test_results(clf_name, dataset_name, label=''):
     # load dataset and classifier
-    clf = joblib.load(directory+'bdt.pkl')
-    dataset = np.load(directory+'dataset.npz')
+    clf = joblib.load(clf_name)
+    dataset = np.load(dataset_name)
 
     result = (dataset['y_test'], clf.predict_proba(dataset['x_test'])[:,1],
-              dataset['w_test'], name)
+              dataset['w_test'], label)
     return result
 
 def get_tmva_test_results(directory, variables, name=''):
