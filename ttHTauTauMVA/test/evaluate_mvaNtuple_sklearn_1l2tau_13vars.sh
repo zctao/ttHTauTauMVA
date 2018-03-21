@@ -2,47 +2,16 @@
 
 analysis="1l2tau"
 
-variables_tt="
-mTauTauVis 
-tau2_pt
-tau1_pt
-avg_dr_jet
-dr_lep_tau_lead
-ptmiss
-dr_taus
-mindr_lep_jet
-mindr_tau1_jet
-mindr_tau2_jet
-mT_lep
-nJet
-nBjetLoose
-taup_easym
-taum_easym
-"
+variables_tt="mTauTauVis tau2_pt tau1_pt avg_dr_jet dr_lep_tau_lead ptmiss dr_taus mindr_lep_jet mindr_tau1_jet mindr_tau2_jet mT_lep nJet nBjetLoose"
 
-clf_ttbar="/uscms/home/ztao/public_html/BDTFeb2018_noGenMatch/sklearn/1l2tau/a_extra2vars/ttbar/bdt.pkl"
+clf_ttbar="/uscms/home/ztao/public_html/BDTFeb2018_noGenMatch/sklearn/1l2tau/alexandra/ttbar/bdt.pkl"
 
-variables_ttV="
-mTauTauVis
-dr_taus
-mT_lep
-ptmiss
-avg_dr_jet
-tau1_pt
-mindr_tau1_jet
-dr_lep_tau_sublead
-lep_conePt
-tau2_pt
-mindr_lep_jet
-costS_tau
-dr_lep_tau_ss
-taup_easym
-taum_easym
-"
-clf_ttV="/uscms/home/ztao/public_html/BDTFeb2018_noGenMatch/sklearn/1l2tau/a_extra2vars/ttV/bdt.pkl"
+variables_ttV="mTauTauVis dr_taus mT_lep ptmiss avg_dr_jet tau1_pt mindr_tau1_jet dr_lep_tau_sublead lep_conePt tau2_pt mindr_lep_jet costS_tau dr_lep_tau_ss"
 
-version=$analysis"_13plus2Vars"
-#version=$analysis"_13Vars"
+clf_ttV="/uscms/home/ztao/public_html/BDTFeb2018_noGenMatch/sklearn/1l2tau/alexandra/ttV/bdt.pkl"
+
+#version=$analysis"_13plus2Vars"
+version=$analysis"_13Vars"
 
 mvaNtupleDir=/uscms/home/ztao/nobackup/mvaNtuples/M17/jan2018/
 
